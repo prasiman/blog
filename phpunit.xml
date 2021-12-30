@@ -9,6 +9,7 @@
          processIsolation="false"
          stopOnFailure="false"
          syntaxCheck="false"
+         cacheResult ="false"
 >
     <testsuites>
         <testsuite name="Test Blog Plugin Test Suite">
@@ -17,6 +18,7 @@
     </testsuites>
     <php>
         <env name="APP_ENV" value="local" />
+        <env name="APP_URL" value="http://blog.test"/>
         <env name="CACHE_DRIVER" value="array" />
         <env name="SESSION_DRIVER" value="array" />
     </php>

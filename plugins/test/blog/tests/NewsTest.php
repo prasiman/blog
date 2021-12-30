@@ -1,17 +1,14 @@
 <?php namespace Test\Blog\Tests;
 
-use System\Classes\PluginManager;
 use PluginTestCase;
 use TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 
-class NewsTest extends PluginTestCase
+class NewsTest extends TestCase
 {
 
     public function testCreateFirstPost()
     {
-        $response = $this->call('POST', 'api/v1/news', [
+        $response = $this->json('POST', 'api/v1/news', [
             'title' => 'Sally Sendiri',
             'content' => 'Sally Sendiri merupakan sebuah lagu yang dibawakan oleh Peterpan',
             'tags' => 'peterpan,lagu hits indonesia,ariel'
@@ -25,7 +22,7 @@ class NewsTest extends PluginTestCase
      */
     public function testGetAllPublishedPosts()
     {
-        $response = $this->call('GET', 'api/v1/news', [
+        $response = $this->get('api/v1/news', [
             'status' => 'published'
         ]);
 
@@ -37,7 +34,7 @@ class NewsTest extends PluginTestCase
      */
     public function testCreateFirstTopic()
     {
-        $response = $this->call('POST', 'api/v1/topics', [
+        $response = $this->json('POST', 'api/v1/topics', [
             'name' => 'Musik',
         ]);
 
@@ -49,7 +46,7 @@ class NewsTest extends PluginTestCase
      */
     public function testUpdatePost()
     {
-        $response = $this->call('PUT', 'api/v1/news/1', [
+        $update = $this->call('PUT', 'api/v1/news/1', [
             'title' => 'Sally Sendiri',
             'content' => 'Sally Sendiri merupakan sebuah lagu yang dibawakan oleh Peterpan',
             'tags' => 'peterpan,lagu hits indonesia,ariel,noah',
@@ -57,11 +54,12 @@ class NewsTest extends PluginTestCase
             'topics_id' => 1
         ]);
 
+        $content = $update->getContent();
+
+        $response = $this->call('GET', 'api/v1/news/' . data_get($content, 'id'));
+
         $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'message'
-            ]);
+            ->assertSee('noah');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 use Cache;
 use Exception;
+use ApplicationException;
 use Test\Blog\Models\News;
 
 class NewsController
@@ -50,20 +51,17 @@ class NewsController
         }
     }
 
-    public function getNewsBySlug($slug)
+    public function getNewsById($id)
     {
         try {
-            $cacheName = "news_$slug";
+            $cacheName = "news_$id";
 
             if (Cache::has($cacheName)) {
                 return (array) Cache::get($cacheName);
             }
 
-            if (!$item = News::where('slug', $slug)->with('topics')->first()) {
-                return [
-                    'success' => false,
-                    'message' => 'No post found'
-                ];
+            if (!$item = News::find($id)) {
+                throw new ApplicationException('No post found');
             }
 
             $data = [
@@ -101,20 +99,19 @@ class NewsController
         $data = \Input::all();
 
         try {
-            News::insert([
-                'title'     => data_get($data, 'title'),
-                'slug'      => str_slug(data_get($data, 'title')),
-                'excerpt'   => data_get($data, 'excerpt'),
-                'content'   => data_get($data, 'content'),
-                'tags'      => json_encode(explode(',', data_get($data, 'tags'))),
-                'is_published' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $item = new News();
+            $item->title = data_get($data, 'title');
+            $item->slug = str_slug(data_get($data, 'title'));
+            $item->excerpt = data_get($data, 'excerpt');
+            $item->content = data_get($data, 'content');
+            $item->tags = explode(',', data_get($data, 'tags'));
+            $item->is_published = data_get($data, 'is_published');
+            $item->save();
 
             return [
                 'success'   => true,
-                'message'   => 'New post successfully created!'
+                'message'   => 'New post successfully created!',
+                'id'        => $item->id,
             ];
         } catch (Exception $e) {
             return $this->error($e);
@@ -126,10 +123,7 @@ class NewsController
         $data = \Input::all();
 
         if (!$item = News::find($id)) {
-            return [
-                'success' => false,
-                'message' => 'No post found'
-            ];
+            throw new ApplicationException('No post found');
         }
 
         try {
@@ -145,7 +139,8 @@ class NewsController
 
             return [
                 'success'   => true,
-                'message'   => 'Post successfully updated!'
+                'message'   => 'Post successfully updated!',
+                'id'        => $item->id
             ];
         } catch (Exception $e) {
             return $this->error($e);

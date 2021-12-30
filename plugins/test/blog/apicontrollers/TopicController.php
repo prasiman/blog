@@ -2,6 +2,7 @@
 
 use Cache;
 use Exception;
+use ApplicationException;
 use Test\Blog\Models\Topic;
 
 class TopicController
@@ -23,14 +24,11 @@ class TopicController
         ];
     }
 
-    public function getTopicBySlug($slug)
+    public function getTopicById($id)
     {
         try {
-            if (!$item = Topic::where('slug', $slug)->first()) {
-                return [
-                    'success' => false,
-                    'message' => 'No topic found'
-                ];
+            if (!$item = Topic::find($id)) {
+                throw new ApplicationException('No topic found');
             }
 
             return [
@@ -82,10 +80,7 @@ class TopicController
         $data = \Input::all();
 
         if (!$item = Topic::find($id)) {
-            return [
-                'success' => false,
-                'message' => 'No topic found'
-            ];
+            throw new ApplicationException('No topic found');
         }
 
         try {
