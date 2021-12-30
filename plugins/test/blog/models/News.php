@@ -9,6 +9,7 @@ use Test\Blog\Models\Topic;
 class News extends Model
 {
     use \October\Rain\Database\Traits\Validation;
+    use \October\Rain\Database\Traits\SoftDelete;
 
     /**
      * @var string The database table used by the model.
@@ -57,8 +58,11 @@ class News extends Model
      */
     protected $dates = [
         'created_at',
-        'updated_at'
+        'updated_at',
+        'deleted_at'
     ];
+
+    protected $allowTrashedSlugs = true;
 
     /**
      * @var array Relations

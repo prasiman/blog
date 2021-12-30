@@ -1,5 +1,6 @@
 <?php namespace Test\Blog\ApiControllers;
 
+use Cache;
 use Exception;
 use Test\Blog\Models\Topic;
 
@@ -10,13 +11,16 @@ class TopicController
     {
         $topicQuery = Topic::query();
 
-        return $topicQuery->get()->map(function ($item) {
-            return [
-                'id'        => $item->id,
-                'name'      => $item->name,
-                'slug'      => $item->slug
-            ];
-        });
+        return [
+            'success'   => true,
+            'data'      => $topicQuery->get()->map(function ($item) {
+                return [
+                    'id'        => $item->id,
+                    'name'      => $item->name,
+                    'slug'      => $item->slug
+                ];
+            })
+        ];
     }
 
     public function getTopicBySlug($slug)
@@ -54,12 +58,14 @@ class TopicController
 
     public function createNewTopic()
     {
-        $data = post();
+        $data = \Input::all();
 
         try {
             Topic::insert([
                 'name'      => data_get($data, 'name'),
                 'slug'      => str_slug(data_get($data, 'name')),
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             return [
@@ -73,7 +79,7 @@ class TopicController
 
     public function updateTopic($id)
     {
-        $data = post();
+        $data = \Input::all();
 
         if (!$item = Topic::find($id)) {
             return [
@@ -98,7 +104,7 @@ class TopicController
 
     public function deleteTopic($id)
     {
-        if (!$item = topic::find($id)) {
+        if (!$item = Topic::find($id)) {
             return [
                 'success' => false,
                 'message' => 'No topic found'
@@ -119,10 +125,11 @@ class TopicController
 
     private function error(Exception $e)
     {
-        return [
-            'success'   => false,
-            'message'   => $e->getMessage()
-        ];
+        if (env('APP_DEBUG')) {
+            throw $e;
+        } else {
+            throw new \ApplicationException('Sistem sedang sibuk, silahkan coba beberapa saat lagi - V001');
+        }
     }
 
 }

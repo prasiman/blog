@@ -38,7 +38,7 @@ return [
     |
     */
 
-    'enableRoutesCache' => true,
+    'enableRoutesCache' => false,
 
     /*
     |--------------------------------------------------------------------------

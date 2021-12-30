@@ -1,5 +1,6 @@
 <?php namespace Test\Blog\ApiControllers;
 
+use Cache;
 use Exception;
 use Test\Blog\Models\News;
 
@@ -14,7 +15,19 @@ class NewsController
             $newsQuery = News::query();
 
             if ($filterStatus = data_get($data, 'status')) {
-                $newsQuery->where('status', $filterStatus);
+                if ($filterStatus == 'draft') {
+                    $newsQuery->where('is_published', false)->whereNull('deleted_at');
+                } else if ($filterStatus == 'published') {
+                    $newsQuery->where('is_published', true)->whereNull('deleted_at');
+                } else if ($filterStatus == 'deleted') {
+                    $newsQuery->withTrashed()->whereNotNull('deleted_at');
+                }
+            }
+
+            $cacheName = 'all_news';
+
+            if (Cache::has($cacheName)) {
+                $newsData = Cache::get($cacheName);
             }
 
             $newsData = $newsQuery->get()->map(function ($item) {
@@ -24,7 +37,9 @@ class NewsController
                     'slug'          => $item->slug,
                     'created_at'    => date($item->created_at),
                 ];
-            });
+            })->toArray();
+
+            Cache::put($cacheName, $newsData, now()->addMinutes(30));
 
             return [
                 'success'   => true,
@@ -38,14 +53,20 @@ class NewsController
     public function getNewsBySlug($slug)
     {
         try {
-            if (!$item = News::where('slug', $slug)->first()) {
+            $cacheName = "news_$slug";
+
+            if (Cache::has($cacheName)) {
+                return (array) Cache::get($cacheName);
+            }
+
+            if (!$item = News::where('slug', $slug)->with('topics')->first()) {
                 return [
                     'success' => false,
                     'message' => 'No post found'
                 ];
             }
 
-            return [
+            $data = [
                 'success'   => true,
                 'data'      => [
                     'id'            => $item->id,
@@ -66,6 +87,10 @@ class NewsController
                     'updated_at'    => date($item->updated_at),
                 ]
             ];
+
+            Cache::put($cacheName, $item, now()->addMinutes(30));
+
+            return $data;
         } catch (Exception $e) {
             return $this->error($e);
         }
@@ -73,7 +98,7 @@ class NewsController
 
     public function createNewPost()
     {
-        $data = post();
+        $data = \Input::all();
 
         try {
             News::insert([
@@ -81,8 +106,10 @@ class NewsController
                 'slug'      => str_slug(data_get($data, 'title')),
                 'excerpt'   => data_get($data, 'excerpt'),
                 'content'   => data_get($data, 'content'),
-                'tags'      => explode(',', data_get($data, 'tags')),
-                'status'    => 'published',
+                'tags'      => json_encode(explode(',', data_get($data, 'tags'))),
+                'is_published' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             return [
@@ -96,7 +123,7 @@ class NewsController
 
     public function updateNews($id)
     {
-        $data = post();
+        $data = \Input::all();
 
         if (!$item = News::find($id)) {
             return [
@@ -111,7 +138,7 @@ class NewsController
             $item->excerpt = data_get($data, 'excerpt');
             $item->content = data_get($data, 'content');
             $item->tags = explode(',', data_get($data, 'tags'));
-            $item->status = data_get($data, 'published');
+            $item->is_published = data_get($data, 'is_published');
             $item->save();
 
             $item->topics()->sync(data_get($data, 'topics_id'));
@@ -148,10 +175,11 @@ class NewsController
 
     private function error(Exception $e)
     {
-        return [
-            'success'   => false,
-            'message'   => $e->getMessage()
-        ];
+        if (env('APP_DEBUG')) {
+            throw $e;
+        } else {
+            throw new \ApplicationException('Sistem sedang sibuk, silahkan coba beberapa saat lagi - V001');
+        }
     }
 
 }

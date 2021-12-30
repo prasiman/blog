@@ -16,8 +16,9 @@ class CreateNewsTable extends Migration
             $table->text('excerpt')->nullable();
             $table->longText('content')->nullable();
             $table->longText('tags')->nullable();
-            $table->string('status')->default('published');
+            $table->boolean('is_published')->default(true);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
